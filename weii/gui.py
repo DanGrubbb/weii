@@ -62,13 +62,14 @@ BMI_COLORS = {
     "Obese": (0.9, 0.2, 0.2),  # Red
 }
 
+import math
+
 class BMIScaleDrawingArea(Gtk.DrawingArea):
     def __init__(self):
         super().__init__()
-
         self.bmi = 0
         self.set_content_width(400)
-        self.set_content_height(80)
+        self.set_content_height(50)  # Reduced height since we removed labels
         
         # Create a style context for getting colors
         self.style_context = self.get_style_context()
@@ -97,9 +98,6 @@ class BMIScaleDrawingArea(Gtk.DrawingArea):
         # Calculate positions
         bmi_min, bmi_max = 10, 40  # Range of BMI to display
         scale_factor = bar_width / (bmi_max - bmi_min)
-        
-        # Set text color (using a fixed dark color instead of system color)
-        text_color_rgb = (0.1, 0.1, 0.1)  # Dark gray
         
         # Draw colored segments
         segments = []
@@ -152,54 +150,30 @@ class BMIScaleDrawingArea(Gtk.DrawingArea):
             r, g, b = BMI_COLORS[category]
             cr.set_source_rgb(r, g, b)
             cr.fill()
-            
-            # Add category labels
-            cr.set_source_rgb(*text_color_rgb)
-            cr.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-            cr.set_font_size(10)
-            
-            # Center text in segment
-            text_x = start_x + segment_width / 2
-            text_y = bar_y + bar_height + 15
-            
-            text = category
-            text_extents = cr.text_extents(text)
-            cr.move_to(text_x - text_extents.width/2, text_y)
-            cr.show_text(text)
-            
-            # Add numeric values for ends of scale
-            if is_first:
-                cr.set_font_size(8)
-                cr.move_to(start_x, bar_y - 5)
-                cr.show_text(f"{bmi_min}")
-            
-            if is_last:
-                cr.set_font_size(8)
-                cr.move_to(end_x - 10, bar_y - 5)
-                cr.show_text(f"{bmi_max}")
         
         # Draw marker for current BMI if valid
         if self.bmi > 0:
             marker_x = margin + (min(max(self.bmi, bmi_min), bmi_max) - bmi_min) * scale_factor
             
-            # Use consistent text color
-            cr.set_source_rgb(*text_color_rgb)
+            # Triangle dimensions
+            triangle_height = 12
+            triangle_width = 10
+            triangle_y = bar_y - 3  # Just above the bar
             
-            # Draw triangle marker
-            cr.move_to(marker_x, bar_y - 10)
-            cr.line_to(marker_x - 6, bar_y - 20)
-            cr.line_to(marker_x + 6, bar_y - 20)
+            # Draw triangle with black fill and white outline
+            # First draw the black fill
+            cr.new_path()
+            cr.move_to(marker_x, triangle_y)
+            cr.line_to(marker_x - triangle_width/2, triangle_y - triangle_height)
+            cr.line_to(marker_x + triangle_width/2, triangle_y - triangle_height)
             cr.close_path()
-            cr.fill()
+            cr.set_source_rgb(0, 0, 0)  # Black fill
+            cr.fill_preserve()
             
-            # Draw BMI value above marker
-            cr.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
-            cr.set_font_size(12)
-            
-            bmi_text = f"{self.bmi:.1f}"
-            text_extents = cr.text_extents(text)
-            cr.move_to(marker_x - text_extents.width/2, bar_y - 25)
-            cr.show_text(bmi_text)
+            # Then draw the white outline
+            cr.set_source_rgb(1, 1, 1)  # White outline
+            cr.set_line_width(1.5)
+            cr.stroke()
 
 class Config:
     """Class to handle configuration loading and saving"""
@@ -841,7 +815,7 @@ def main():
         Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
     )
     
-    app = WiiBoardApp(application_id="com.example.wiiboard")
+    app = WiiBoardApp(application_id="com.gui.weii")
     return app.run(sys.argv)
 
 if __name__ == "__main__":
